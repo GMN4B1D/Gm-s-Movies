@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GMFLIX</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: #0f0f0f; color: #fff; overflow-x: hidden; }
+
+    .navbar {
+      position: fixed; top: 0; width: 100%; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
+      backdrop-filter: blur(12px);
+    }
+    .logo { font-size: 26px; font-weight: 900; color: #e50914; letter-spacing: -1px; }
+    .search-box {
+      background: rgba(255,255,255,0.1); border: none; border-radius: 20px;
+      padding: 9px 16px; color: white; width: 160px; outline: none; font-size: 14px;
+    }
+
+    .hero {
+      height: 62vh; background: linear-gradient(to top, #0f0f0f 12%, transparent),
+      url('https://image.tmdb.org/t/p/original/9PFonBhy4cQy7Jz20NpMygczOkv.jpg') center/cover;
+      display: flex; align-items: flex-end; padding: 30px 16px;
+    }
+    .hero h1 { font-size: 36px; margin-bottom: 6px; }
+    .hero p { opacity: 0.85; margin-bottom: 18px; font-size: 15px; }
+    .hero-buttons { display: flex; gap: 10px; }
+    .btn {
+      padding: 11px 24px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 15px;
+    }
+    .btn-play { background: white; color: black; }
+    .btn-info { background: rgba(109,109,110,0.7); color: white; }
+
+    .row { padding: 20px 16px; }
+    .row h2 { font-size: 18px; margin-bottom: 14px; }
+    .row-posters {
+      display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px;
+      scrollbar-width: none;
+    }
+    .row-posters::-webkit-scrollbar { display: none; }
+    .poster {
+      min-width: 135px; height: 200px; border-radius: 8px; object-fit: cover;
+      cursor: pointer; transition: transform 0.25s;
+    }
+    .poster:hover { transform: scale(1.07); }
+
+    .bottom-tab {
+      position: fixed; bottom: 0; width: 100%; background: rgba(15,15,15,0.97);
+      backdrop-filter: blur(20px); display: flex; justify-content: space-around;
+      padding: 10px 0 24px; border-top: 1px solid #222; z-index: 99;
+    }
+    .tab-item { text-align: center; font-size: 11px; opacity: 0.6; cursor: pointer; }
+    .tab-item.active { opacity: 1; color: #e50914; }
+    .tab-item div { font-size: 22px; margin-bottom: 3px; }
+
+    .page { display: none; padding-bottom: 90px; }
+    .page.active { display: block; }
+
+    /* Login */
+    .account-box {
+      max-width: 400px; margin: 90px auto 20px; background: #1a1a1a;
+      padding: 30px 24px; border-radius: 18px; text-align: center;
+    }
+    .account-box h2 { margin-bottom: 8px; }
+    .account-box p { opacity: 0.7; font-size: 14px; margin-bottom: 20px; }
+    .account-box input {
+      width: 100%; padding: 14px; margin: 8px 0; border-radius: 12px;
+      border: none; background: #2c2c2c; color: white; font-size: 15px;
+    }
+    .profile-upload {
+      width: 90px; height: 90px; border-radius: 50%; background: #2c2c2c;
+      margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;
+      overflow: hidden; cursor: pointer; border: 2px dashed #555;
+    }
+    .profile-upload img { width: 100%; height: 100%; object-fit: cover; }
+    .gmail-btn {
+      background: #e50914; color: white; width: 100%; padding: 14px;
+      border: none; border-radius: 12px; font-weight: 600; margin-top: 16px; font-size: 16px;
+    }
+
+    /* History */
+    .history-item {
+      display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #222;
+      cursor: pointer;
+    }
+    .history-thumb {
+      width: 140px; height: 80px; background: #333; border-radius: 8px; flex-shrink: 0;
+      background-size: cover; background-position: center;
+    }
+    .history-info h4 { font-size: 14px; margin-bottom: 4px; }
+    .history-info p { font-size: 12px; opacity: 0.6; }
+
+    /* Player */
+    .player-overlay {
+      position: fixed; inset: 0; background: #000; z-index: 200;
+      display: none; flex-direction: column;
+    }
+    .player-overlay.active { display: flex; }
+
+    .player-top {
+      position: absolute; top: 0; width: 100%; padding: 16px;
+      display: flex; justify-content: space-between; align-items: center; z-index: 20;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+      transition: opacity 0.4s;
+    }
+    .player-title { font-size: 15px; max-width: 70%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .video-container {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      position: relative; background: #000;
+    }
+    video { width: 100%; max-height: 100%; }
+
+    .player-controls {
+      position: absolute; bottom: 0; width: 100%; padding: 12px 16px 28px;
+      background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+      transition: opacity 0.4s;
+    }
+    .progress-bar {
+      height: 5px; background: #444; border-radius: 3px; margin-bottom: 12px;
+      position: relative; cursor: pointer;
+    }
+    .progress-fill { height: 100%; background: #e50914; width: 0%; border-radius: 3px; }
+    .progress-handle {
+      position: absolute; top: 50%; transform: translate(-50%, -50%);
+      width: 14px; height: 14px; background: #e50914; border-radius: 50%;
+      display: none;
+    }
+    .progress-bar:hover .progress-handle { display: block; }
+
+    .time-row {
+      display: flex; justify-content: space-between; font-size: 12px;
+      opacity: 0.8; margin-bottom: 10px;
+    }
+
+    .control-row { display: flex; justify-content: space-between; align-items: center; }
+    .control-left, .control-right { display: flex; gap: 20px; align-items: center; }
+    .control-btn { font-size: 22px; opacity: 0.95; cursor: pointer; user-select: none; }
+    .control-btn:active { transform: scale(0.9); }
+
+    /* Track & Quality Menu */
+    .menu-panel {
+      position: absolute; bottom: 100px; left: 12px; right: 12px;
+      background: rgba(20,20,20,0.97); backdrop-filter: blur(20px);
+      border-radius: 16px; padding: 16px; display: none; z-index: 30;
+      max-height: 55vh; overflow-y: auto;
+    }
+    .menu-panel.active { display: block; }
+    .menu-title { font-size: 13px; opacity: 0.6; margin-bottom: 10px; font-weight: 600; }
+    .menu-item {
+      padding: 11px 0; font-size: 15px; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    .menu-item:last-child { border-bottom: none; }
+    .menu-item.selected { color: #e50914; }
+    .menu-item.selected::after { content: "✓"; }
+
+    .hide-controls .player-top,
+    .hide-controls .player-controls { opacity: 0; pointer-events: none; }
+
+    .season-page { padding: 75px 16px 20px; }
+    .episode-card {
+      display: flex; gap: 12px; background: #1a1a1a; padding: 12px;
+      border-radius: 10px; margin-bottom: 10px; cursor: pointer;
+    }
+    .ep-thumb { width: 120px; height: 68px; background: #333; border-radius: 6px; flex-shrink: 0; }
+
+    /* Upload boxes */
+    .upload-box {
+      border: 2px dashed #444; padding: 18px; text-align: center;
+      border-radius: 12px; margin: 10px 0; cursor: pointer; font-size: 14px;
+    }
+    .upload-box:hover { border-color: #e50914; }
+  </style>
+</head>
+<body>
+
+  <div class="navbar">
+    <div class="logo">GMFLIX</div>
+    <input type="text" class="search-box" placeholder="Search...">
+  </div>
+
+  <!-- HOME -->
+  <div id="home" class="page active">
+    <div class="hero">
+      <div>
+        <h1>Squid Game</h1>
+        <p>456 players. One deadly game.</p>
+        <div class="hero-buttons">
+          <button class="btn btn-play" onclick="openMovie(1)">▶ Play</button>
+          <button class="btn btn-info">More Info</button>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <h2>Trending Now</h2>
+      <div class="row-posters" id="trending"></div>
+    </div>
+    <div class="row">
+      <h2>My List</h2>
+      <div class="row-posters" id="mylist"></div>
+    </div>
+  </div>
+
+  <!-- REQUEST -->
+  <div id="request" class="page">
+    <div style="padding: 75px 16px 20px;">
+      <h2>Request a Movie</h2>
+      <p style="opacity:0.65; margin:8px 0 18px; font-size:14px;">যে মুভি চান সেটা রিকোয়েস্ট করুন</p>
+      <div style="background:#1a1a1a; padding:16px; border-radius:14px;">
+        <input type="text" id="reqName" placeholder="Movie Name" style="width:100%;padding:13px;border-radius:10px;border:none;background:#2c2c2c;color:white;margin-bottom:10px;">
+        <textarea id="reqComment" placeholder="কমেন্ট লিখুন..." style="width:100%;height:80px;padding:13px;border-radius:10px;border:none;background:#2c2c2c;color:white;"></textarea>
+        <button class="btn btn-play" style="width:100%;margin-top:12px;" onclick="submitRequest()">Submit Request</button>
+      </div>
+      <div id="requestList" style="margin-top:20px;"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="history" class="page">
+    <div style="padding: 75px 0 20px;">
+      <h2 style="padding: 0 16px 12px;">Watch History</h2>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <!-- ACCOUNT -->
+  <div id="account" class="page">
+    <div class="account-box" id="loginBox">
+      <h2>Sign In</h2>
+      <p>আপনার অ্যাকাউন্ট তৈরি করুন বা লগইন করুন</p>
+
+      <div class="profile-upload" onclick="document.getElementById('profilePic').click()">
+        <span id="profilePlaceholder" style="font-size:32px;opacity:0.5;">+</span>
+        <img id="profilePreview" style="display:none;">
+        <input type="file" id="profilePic" accept="image/*" style="display:none" onchange="previewProfile(this)">
+      </div>
+
+      <input type="text" id="loginName" placeholder="Your Name">
+      <input type="email" id="loginEmail" placeholder="Gmail">
+      <input type="password" id="loginPass" placeholder="Password">
+
+      <button class="gmail-btn" onclick="login()">Login / Create Account</button>
+    </div>
+
+    <div id="userPanel" style="display:none; padding:75px 16px 20px;">
+      <div style="display:flex; align-items:center; gap:14px; margin-bottom:24px;">
+        <img id="userAvatar" style="width:60px;height:60px;border-radius:50%;object-fit:cover;background:#333;">
+        <div>
+          <h2 id="userName" style="font-size:20px;"></h2>
+          <p id="userEmail" style="opacity:0.65;font-size:13px;"></p>
+        </div>
+      </div>
+      <button class="btn" style="background:#e50914;width:100%;" onclick="logout()">Logout</button>
+
+      <div id="adminPanel" style="display:none; margin-top:30px;">
+        <h2 style="margin-bottom:14px;">Admin – Upload Movie</h2>
+
+        <input type="text" id="movieTitle" placeholder="Movie Title" style="width:100%;padding:13px;border-radius:10px;border:none;background:#2c2c2c;color:white;margin-bottom:10px;">
+        <textarea id="movieDesc" placeholder="Description" rows="2" style="width:100%;padding:13px;border-radius:10px;border:none;background:#2c2c2c;color:white;margin-bottom:10px;"></textarea>
+
+        <!-- Thumbnail -->
+        <div class="upload-box" onclick="document.getElementById('thumbInput').click()">
+          📷 Thumbnail সিলেক্ট করুন
+          <input type="file" id="thumbInput" accept="image/*" style="display:none" onchange="previewThumb(this)">
+          <img id="thumbPreview" style="max-width:120px;margin-top:10px;display:none;border-radius:8px;">
+        </div>
+
+        <!-- Video File Upload (NEW) -->
+        <div class="upload-box" onclick="document.getElementById('videoInput').click()">
+          🎬 Video File সিলেক্ট করুন (Direct Upload)
+          <input type="file" id="videoInput" accept="video/*" style="display:none" onchange="previewVideo(this)">
+          <div id="videoFileName" style="margin-top:8px;font-size:13px;opacity:0.7;"></div>
+        </div>
+
+        <label style="display:flex;align-items:center;gap:8px;margin:16px 0;font-size:14px;">
+          <input type="checkbox" id="hasSeason" onchange="toggleSeason()"> Season আছে
+        </label>
+        <div id="seasonBox" style="display:none;">
+          <input type="number" id="seasonCount" placeholder="কয়টা Season?" min="1" style="width:100%;padding:12px;border-radius:10px;border:none;background:#2c2c2c;color:white;">
+        </div>
+
+        <button class="btn btn-play" style="width:100%;margin-top:16px;" onclick="uploadMovie()">Upload Movie</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEASON PAGE -->
+  <div id="seasonPage" class="page">
+    <div class="season-page">
+      <h2 id="seasonMovieTitle" style="margin-bottom:16px;"></h2>
+      <div id="seasonList"></div>
+    </div>
+  </div>
+
+  <!-- PLAYER -->
+  <div class="player-overlay" id="player" onclick="toggleControls(event)">
+    <div class="player-top" id="playerTop">
+      <span onclick="closePlayer()" style="font-size:22px;cursor:pointer;padding:6px;">←</span>
+      <span class="player-title" id="playerTitle">Playing...</span>
+      <span style="width:30px;"></span>
+    </div>
+
+    <div class="video-container">
+      <video id="mainVideo" playsinline>
+        <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+      </video>
+    </div>
+
+    <!-- Quality Menu -->
+    <div class="menu-panel" id="qualityMenu">
+      <div class="menu-title">Quality</div>
+      <div class="menu-item selected" onclick="selectQuality(this)">Auto</div>
+      <div class="menu-item" onclick="selectQuality(this)">4K</div>
+      <div class="menu-item" onclick="selectQuality(this)">1080p</div>
+      <div class="menu-item" onclick="selectQuality(this)">720p</div>
+      <div class="menu-item" onclick="selectQuality(this)">480p</div>
+      <div class="menu-item" onclick="selectQuality(this)">360p</div>
+    </div>
+
+    <!-- Audio / Subtitle Menu (Enhanced) -->
+    <div class="menu-panel" id="trackMenu">
+      <div style="display:flex; gap:16px;">
+        <div style="flex:1;">
+          <div class="menu-title">Audio Track</div>
+          <div class="menu-item selected" data-lang="bn" onclick="selectAudio(this)">বাংলা</div>
+          <div class="menu-item" data-lang="hi" onclick="selectAudio(this)">हिन्दी</div>
+          <div class="menu-item" data-lang="en" onclick="selectAudio(this)">English</div>
+          <div class="menu-item" data-lang="ko" onclick="selectAudio(this)">한국어</div>
+          <div class="menu-item" data-lang="ar" onclick="selectAudio(this)">العربية</div>
+          <div class="menu-item" data-lang="es" onclick="selectAudio(this)">Español</div>
+          <div class="menu-item" data-lang="fr" onclick="selectAudio(this)">Français</div>
+          <div class="menu-item" data-lang="ja" onclick="selectAudio(this)">日本語</div>
+          <div class="menu-item" data-lang="zh" onclick="selectAudio(this)">中文</div>
+        </div>
+        <div style="flex:1;">
+          <div class="menu-title">Subtitles</div>
+          <div class="menu-item" data-sub="off" onclick="selectSub(this)">Off</div>
+          <div class="menu-item selected" data-sub="bn" onclick="selectSub(this)">বাংলা</div>
+          <div class="menu-item" data-sub="en" onclick="selectSub(this)">English</div>
+          <div class="menu-item" data-sub="hi" onclick="selectSub(this)">हिन्दी</div>
+          <div class="menu-item" data-sub="ar" onclick="selectSub(this)">العربية</div>
+          <div class="menu-item" data-sub="ko" onclick="selectSub(this)">한국어</div>
+          <div class="menu-item" data-sub="es" onclick="selectSub(this)">Español</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="player-controls" id="playerControls">
+      <div class="progress-bar" id="progressBar" onclick="seek(event)">
+        <div class="progress-fill" id="progressFill"></div>
+        <div class="progress-handle" id="progressHandle"></div>
+      </div>
+      <div class="time-row">
+        <span id="currentTime">0:00</span>
+        <span id="duration">0:00</span>
+      </div>
+      <div class="control-row">
+        <div class="control-left">
+          <span class="control-btn" onclick="seekRelative(-10, event)">↺ 10</span>
+          <span class="control-btn" id="playBtn" onclick="togglePlay(event)">❚❚</span>
+          <span class="control-btn" onclick="seekRelative(10, event)">10 ↻</span>
+        </div>
+        <div class="control-right">
+          <span class="control-btn" onclick="toggleMute(event)" id="muteBtn">🔊</span>
+          <span class="control-btn" onclick="toggleMenu('trackMenu', event)">CC</span>
+          <span class="control-btn" onclick="toggleMenu('qualityMenu', event)">⚙</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-tab">
+    <div class="tab-item active" onclick="showPage('home', this)"><div>🏠</div>Home</div>
+    <div class="tab-item" onclick="showPage('request', this)"><div>💬</div>Request</div>
+    <div class="tab-item" onclick="showPage('history', this)"><div>🕒</div>History</div>
+    <div class="tab-item" onclick="showPage('account', this)"><div>👤</div>Account</div>
+  </div>
+
+<script>
+  const ADMIN_EMAIL = "gmnabid94@gmail.com";
+
+  // Demo movies
+  let movies = JSON.parse(localStorage.getItem("gm_movies")) || [
+    { id: 1, title: "Squid Game", img: "https://image.tmdb.org/t/p/w500/dDlEmu3EZ0Pgg93K2SVNLCjCSvE.jpg", hasSeason: true, seasons: 1, videoUrl: null },
+    { id: 2, title: "Stranger Things", img: "https://image.tmdb.org/t/p/w500/49WJfeN0moxb9IPfGn8AIqMGskD.jpg", hasSeason: true, seasons: 4, videoUrl: null },
+    { id: 3, title: "The Witcher", img: "https://image.tmdb.org/t/p/w500/7vjaCdMw2ELj27cLLkiWLDeLuy.jpg", hasSeason: false, videoUrl: null },
+    { id: 4, title: "Inception", img: "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg", hasSeason: false, videoUrl: null }
+  ];
+
+  let history = JSON.parse(localStorage.getItem("gm_history")) || [];
+  let requests = JSON.parse(localStorage.getItem("gm_requests")) || [];
+  let currentUser = JSON.parse(localStorage.getItem("gm_user")) || null;
+  let hideTimer = null;
+  let currentVideoFile = null; // temporary for upload
+
+  // ========== RENDER ==========
+  function renderPosters() {
+    const t = document.getElementById("trending");
+    const m = document.getElementById("mylist");
+    t.innerHTML = m.innerHTML = "";
+    movies.forEach(movie => {
+      const html = `<img class="poster" src="${movie.img}" onclick="openMovie(${movie.id})" alt="${movie.title}">`;
+      t.innerHTML += html;
+      m.innerHTML += html;
+    });
+  }
+  renderPosters();
+
+  function showPage(page, el) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById(page).classList.add("active");
+    document.querySelectorAll(".tab-item").forEach(t => t.classList.remove("active"));
+    if (el) el.classList.add("active");
+  }
+
+  // ========== MOVIE / EPISODE ==========
+  function openMovie(id) {
+    const movie = movies.find(m => m.id === id);
+    if (!movie) return;
+
+    history.unshift({ title: movie.title, img: movie.img, time: new Date().toLocaleString() });
+    if (history.length > 30) history.pop();
+    localStorage.setItem("gm_history", JSON.stringify(history));
+    renderHistory();
+
+    if (movie.hasSeason) {
+      document.getElementById("seasonMovieTitle").innerText = movie.title;
+      let html = "";
+      for (let s = 1; s <= (movie.seasons || 1); s++) {
+        html += `<h3 style="margin:18px 0 10px;">Season ${s}</h3>`;
+        for (let e = 1; e <= 6; e++) {
+          html += `
+            <div class="episode-card" onclick="playEpisode('${movie.title}', ${s}, ${e}, ${movie.id})">
+              <div class="ep-thumb" style="background:url('${movie.img}');background-size:cover;"></div>
+              <div>
+                <h4>Episode ${e}</h4>
+                <p style="font-size:12px;opacity:0.6;">Episode description...</p>
+              </div>
+            </div>`;
+        }
+      }
+      document.getElementById("seasonList").innerHTML = html;
+      showPage("seasonPage");
+    } else {
+      playEpisode(movie.title, null, null, movie.id);
+    }
+  }
+
+  function playEpisode(title, season, episode, movieId) {
+    let name = title;
+    if (season) name += ` • S${String(season).padStart(2,'0')}E${String(episode).padStart(2,'0')}`;
+    document.getElementById("playerTitle").innerText = name;
+
+    const video = document.getElementById("mainVideo");
+    const movie = movies.find(m => m.id === movieId);
+
+    // Use uploaded video if available, otherwise demo
+    if (movie && movie.videoUrl) {
+      video.src = movie.videoUrl;
+    } else {
+      video.src = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+    }
+
+    document.getElementById("player").classList.add("active");
+    video.play().catch(()=>{});
+    updatePlayBtn();
+    startHideTimer();
+  }
+
+  function closePlayer() {
+    document.getElementById("player").classList.remove("active");
+    const video = document.getElementById("mainVideo");
+    video.pause();
+    clearTimeout(hideTimer);
+  }
+
+  // ========== PLAYER CONTROLS ==========
+  const video = document.getElementById("mainVideo");
+
+  video.addEventListener("timeupdate", () => {
+    const percent = (video.currentTime / video.duration) * 100 || 0;
+    document.getElementById("progressFill").style.width = percent + "%";
+    document.getElementById("progressHandle").style.left = percent + "%";
+    document.getElementById("currentTime").textContent = formatTime(video.currentTime);
+  });
+
+  video.addEventListener("loadedmetadata", () => {
+    document.getElementById("duration").textContent = formatTime(video.duration);
+  });
+
+  video.addEventListener("play", updatePlayBtn);
+  video.addEventListener("pause", updatePlayBtn);
+
+  function formatTime(s) {
+    if (!s || isNaN(s)) return "0:00";
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec < 10 ? "0" : ""}${sec}`;
+  }
+
+  function updatePlayBtn() {
+    document.getElementById("playBtn").textContent = video.paused ? "▶" : "❚❚";
+  }
+
+  function togglePlay(e) {
+    e.stopPropagation();
+    video.paused ? video.play() : video.pause();
+    startHideTimer();
+  }
+
+  function seek(e) {
+    e.stopPropagation();
+    const bar = document.getElementById("progressBar");
+    const rect = bar.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    video.currentTime = percent * video.duration;
+    startHideTimer();
+  }
+
+  function seekRelative(sec, e) {
+    e.stopPropagation();
+    video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + sec));
+    startHideTimer();
+  }
+
+  function toggleMute(e) {
+    e.stopPropagation();
+    video.muted = !video.muted;
+    document.getElementById("muteBtn").textContent = video.muted ? "🔇" : "🔊";
+    startHideTimer();
+  }
+
+  function toggleControls(e) {
+    if (e.target.closest('.menu-panel') || e.target.closest('.control-btn') || e.target.closest('.player-top') || e.target.closest('.progress-bar')) return;
+    const player = document.getElementById("player");
+    player.classList.toggle("hide-controls");
+    if (!player.classList.contains("hide-controls")) startHideTimer();
+  }
+
+  function startHideTimer() {
+    clearTimeout(hideTimer);
+    document.getElementById("player").classList.remove("hide-controls");
+    hideTimer = setTimeout(() => {
+      document.getElementById("player").classList.add("hide-controls");
+    }, 3500);
+  }
+
+  function toggleMenu(id, e) {
+    e.stopPropagation();
+    document.querySelectorAll(".menu-panel").forEach(m => {
+      if (m.id !== id) m.classList.remove("active");
+    });
+    document.getElementById(id).classList.toggle("active");
+    startHideTimer();
+  }
+
+  function selectQuality(el) {
+    document.querySelectorAll("#qualityMenu .menu-item").forEach(i => i.classList.remove("selected"));
+    el.classList.add("selected");
+    document.getElementById("qualityMenu").classList.remove("active");
+    // In real app you would change source quality here
+  }
+
+  function selectAudio(el) {
+    el.parentElement.querySelectorAll(".menu-item").forEach(i => i.classList.remove("selected"));
+    el.classList.add("selected");
+    // In real multi-audio file you would switch audio track
+    // Here we just show selection
+  }
+
+  function selectSub(el) {
+    el.parentElement.querySelectorAll(".menu-item").forEach(i => i.classList.remove("selected"));
+    el.classList.add("selected");
+    // In real app you would enable/disable <track> elements
+  }
+
+  // ========== AUTH ==========
+  function previewProfile(input) {
+    if (input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById("profilePreview").src = e.target.result;
+        document.getElementById("profilePreview").style.display = "block";
+        document.getElementById("profilePlaceholder").style.display = "none";
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  function login() {
+    const name = document.getElementById("loginName").value.trim();
+    const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+    const pass = document.getElementById("loginPass").value;
+    if (!name || !email || !pass) return alert("সব ফিল্ড পূরণ করুন");
+
+    currentUser = {
+      name,
+      email,
+      avatar: document.getElementById("profilePreview").src || ""
+    };
+    localStorage.setItem("gm_user", JSON.stringify(currentUser));
+
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("userPanel").style.display = "block";
+    document.getElementById("userName").innerText = name;
+    document.getElementById("userEmail").innerText = email;
+    if (currentUser.avatar) document.getElementById("userAvatar").src = currentUser.avatar;
+
+    if (email === ADMIN_EMAIL) {
+      document.getElementById("adminPanel").style.display = "block";
+    }
+  }
+
+  function logout() {
+    currentUser = null;
+    localStorage.removeItem("gm_user");
+    document.getElementById("loginBox").style.display = "block";
+    document.getElementById("userPanel").style.display = "none";
+    document.getElementById("adminPanel").style.display = "none";
+  }
+
+  // ========== ADMIN UPLOAD ==========
+  function toggleSeason() {
+    document.getElementById("seasonBox").style.display = document.getElementById("hasSeason").checked ? "block" : "none";
+  }
+
+  function previewThumb(input) {
+    if (input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById("thumbPreview").src = e.target.result;
+        document.getElementById("thumbPreview").style.display = "block";
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  function previewVideo(input) {
+    if (input.files[0]) {
+      currentVideoFile = input.files[0];
+      document.getElementById("videoFileName").textContent = "✓ " + input.files[0].name;
+    }
+  }
+
+  function uploadMovie() {
+    const title = document.getElementById("movieTitle").value.trim();
+    if (!title) return alert("Title লিখুন");
+
+    const hasSeason = document.getElementById("hasSeason").checked;
+    let videoUrl = null;
+
+    // Create object URL for the video (works in current session)
+    if (currentVideoFile) {
+      videoUrl = URL.createObjectURL(currentVideoFile);
+    }
+
+    const newMovie = {
+      id: Date.now(),
+      title,
+      img: document.getElementById("thumbPreview").src || "https://via.placeholder.com/300x450?text=No+Image",
+      hasSeason,
+      seasons: hasSeason ? (+document.getElementById("seasonCount").value || 1) : 0,
+      videoUrl: videoUrl,
+      desc: document.getElementById("movieDesc").value
+    };
+
+    movies.unshift(newMovie);
+    localStorage.setItem("gm_movies", JSON.stringify(movies.map(m => {
+      // Don't store large blob urls permanently
+      const copy = {...m};
+      if (copy.videoUrl && copy.videoUrl.startsWith("blob:")) copy.videoUrl = null;
+      return copy;
+    })));
+
+    renderPosters();
+    alert("Movie যোগ হয়েছে! (Video current session এ play হবে)");
+
+    // Reset form
+    document.getElementById("movieTitle").value = "";
+    document.getElementById("movieDesc").value = "";
+    document.getElementById("thumbPreview").style.display = "none";
+    document.getElementById("videoFileName").textContent = "";
+    currentVideoFile = null;
+    document.getElementById("hasSeason").checked = false;
+    document.getElementById("seasonBox").style.display = "none";
+  }
+
+  // ========== REQUEST & HISTORY ==========
+  function submitRequest() {
+    const name = document.getElementById("reqName").value.trim();
+    if (!name) return alert("মুভির নাম লিখুন");
+    requests.unshift({
+      name,
+      comment: document.getElementById("reqComment").value,
+      time: new Date().toLocaleString()
+    });
+    localStorage.setItem("gm_requests", JSON.stringify(requests));
+    renderRequests();
+    document.getElementById("reqName").value = "";
+    document.getElementById("reqComment").value = "";
+  }
+
+  function renderRequests() {
+    document.getElementById("requestList").innerHTML = requests.map(r => `
+      <div style="background:#1a1a1a;padding:14px;border-radius:12px;margin-bottom:10px;">
+        <strong>${r.name}</strong>
+        <p style="opacity:0.75;margin-top:4px;font-size:13px;">${r.comment || ""}</p>
+        <small style="opacity:0.45;">${r.time}</small>
+      </div>`).join("") || "";
+  }
+
+  function renderHistory() {
+    document.getElementById("historyList").innerHTML = history.map(h => `
+      <div class="history-item">
+        <div class="history-thumb" style="background-image:url('${h.img}');"></div>
+        <div class="history-info">
+          <h4>${h.title}</h4>
+          <p>${h.time}</p>
+        </div>
+      </div>`).join("") || "<p style='padding:20px;opacity:0.5;'>কোনো হিস্ট্রি নেই</p>";
+  }
+
+  // ========== INIT ==========
+  if (currentUser) {
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("userPanel").style.display = "block";
+    document.getElementById("userName").innerText = currentUser.name;
+    document.getElementById("userEmail").innerText = currentUser.email;
+    if (currentUser.avatar) document.getElementById("userAvatar").src = currentUser.avatar;
+    if (currentUser.email === ADMIN_EMAIL) document.getElementById("adminPanel").style.display = "block";
+  }
+  renderRequests();
+  renderHistory();
+</script>
+</body>
+</html>
