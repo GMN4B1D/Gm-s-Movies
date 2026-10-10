@@ -1,0 +1,30 @@
+/* ===== GMFLIX PLAYER AUTO-HIDE UI ===== */
+
+#player .player-top,
+#player .player-controls {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.35s ease,
+    visibility 0.35s ease;
+}
+
+#player.controls-hidden .player-top,
+#player.controls-hidden .player-controls {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#player video {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+#player .player-top {
+  padding-top: max(16px, env(safe-area-inset-top));
+}
+
+#player .player-controls {
+  padding-bottom: max(22px, env(safe-area-inset-bottom));
+}
